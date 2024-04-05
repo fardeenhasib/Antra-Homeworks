@@ -70,14 +70,30 @@ FROM Customers c
 JOIN Orders o ON c.CustomerID = o.CustomerID
 WHERE c.City != o.ShipCity
 
--- Q8
-SELECT TOP 5 p.ProductName, AVG(od.UnitPrice) AS AveragePrice, c.City AS CustomerCityWithMaxOrder
+-- Q8 
+-- TOP 5 Products and their AvgPrice
+-- SAVE it as temp t1
+SELECT t1.ProductName, t1.AvgPrice, t2.City
+FROM
+(SELECT TOP 5 p.ProductName, SUM(od.Quantity*od.UnitPrice)/ SUM(od.Quantity) AS AvgPrice
+FROM Products p
+JOIN "Order Details" od ON p.ProductID = od.ProductID
+GROUP BY p.ProductName
+ORDER BY  SUM(od.Quantity) DESC) AS t1
+JOIN 
+-- PRODUCTS AND thier highest sold city
+-- Save it as temp t2
+(SELECT dt.ProductName, dt.City
+FROM
+(SELECT p.ProductName, c.city, SUM(od.Quantity) AS OrderQtyByCity, RANK() OVER(PARTITION BY p.ProductName ORDER BY SUM(od.Quantity) DESC) AS rnk
 FROM Products p
 JOIN "Order Details" od ON p.ProductID = od.ProductID
 JOIN Orders o ON od.OrderID = o.OrderID
 JOIN Customers c ON o.CustomerID = c.CustomerID
-GROUP BY p.ProductName, c.City
-ORDER BY COUNT(od.OrderID) DESC
+GROUP BY p.ProductName, c.City) AS dt
+WHERE dt.rnk = 1) t2
+ON t1.ProductName = t2.ProductName -- final filter by product name
+
 
 -- Q9a
 SELECT DISTINCT City
